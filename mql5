@@ -1,0 +1,104 @@
+mql5
+//+------------------------------------------------------------------+
+//|                                         Uni Bot MT4              |
+//|                               Developer: forexroboteasy.com       |
+//|                               Developed by: Forex Robot Easy Team |
+//+------------------------------------------------------------------+
+
+// Include necessary libraries
+#include <Trade\Trade.mqh>
+#include <Indicators\MovingAverages.mqh>
+#include <Indicators\RSI.mqh>
+#include <Indicators\MACD.mqh>
+
+// Define constants
+#define SYMBOL 'EURUSD'
+#define TIMEFRAME PERIOD_H1
+#define LOT_SIZE 0.01
+#define STOP_LOSS 50
+#define TAKE_PROFIT 100
+
+// Create objects
+CMovingAverages ma;
+CRSI rsi;
+CMACD macd;
+CTrade trade;
+
+//+------------------------------------------------------------------+
+//|                                 OnInit                           |
+//|           Function to initialize the expert advisor                |
+//+------------------------------------------------------------------+
+void OnInit()
+{
+   // Initialize indicators
+   ma.Init(SYMBOL, TIMEFRAME);
+   rsi.Init(SYMBOL, TIMEFRAME);
+   macd.Init(SYMBOL, TIMEFRAME);
+
+   // Set indicator parameters
+   ma.SetPeriod(50);
+   rsi.SetPeriod(14);
+   macd.SetFastEMA(12);
+   macd.SetSlowEMA(26);
+   macd.SetSignalSMA(9);
+}
+
+//+------------------------------------------------------------------+
+//|                                 OnTick                           |
+//|           Function to analyze market trends and execute trades     |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+   // Calculate indicator values
+   double maValue = ma.GetSignal();
+   double rsiValue = rsi.GetSignal();
+   double macdValue = macd.GetSignal();
+
+   // Check trading conditions
+   if (maValue > 0 && rsiValue > 70 && macdValue > 0)
+   {
+      // Open a buy order
+      trade.Buy(LOT_SIZE, SYMBOL, STOP_LOSS, TAKE_PROFIT);
+   }
+   else if (maValue < 0 && rsiValue < 30 && macdValue < 0)
+   {
+      // Open a sell order
+      trade.Sell(LOT_SIZE, SYMBOL, STOP_LOSS, TAKE_PROFIT);
+   }
+
+   // Monitor open positions and manage exits
+   trade.MonitorPositions();
+
+   // Record trade history
+   trade.RecordTradeHistory();
+}
+
+//+------------------------------------------------------------------+
+//|                                 OnDeinit                         |
+//|             Function to clean up resources on EA shutdown         |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+   // Clean up resources
+   trade.Destroy();
+   ma.Destroy();
+   rsi.Destroy();
+   macd.Destroy();
+}
+
+//+------------------------------------------------------------------+
+//|                                 main                             |
+//|                The main entry point of the expert advisor         |
+//+------------------------------------------------------------------+
+void OnStart()
+{
+   // Initialize trade functions
+   trade.Init();
+
+   // Run the expert advisor
+   while (!IsStopped())
+   {
+      OnTick();
+      Sleep(1000);
+   }
+}
